@@ -243,14 +243,7 @@ export ANDROID_HOME=/opt/android-sdk        # 按你的 SDK 路径调整
 
 ## 九、更新数据（游戏版本更新后）
 
-数据全部来自 `data.js` 中的 `window.DB`，由提取脚本从 xlsx 解析。若游戏数值变动，需要重新从新版 xlsx 提取：
-
-1. 用 `unzip -o 资料/算法来源表格.xlsx -d xlsx_extract/` 解包（表格存放在 `资料/`）；
-2. 解析 `xl/worksheets/sheetN.xml` 的常量列与公式列（家具名 / 数量 / 成本 / 单次产量 / 精粹 / 树木）；
-3. 重新生成 `data.js`，覆盖 `web/` 与 `android/app/src/main/assets/` 两处。
-
-> 提取脚本逻辑见本目录下的 Python 脚本（如有保留）；无脚本时按上述列号重新解析即可。
-> 若新表引入新的公式写法（如新增 WPS 动态数组函数），需相应调整 `core.js`。
+数据全部来自 `data.js` 中的 `window.DB`（由社区表格提取）。游戏数值变动后，重新生成 `data.js` 并覆盖 `web/` 与 `android/app/src/main/assets/` 两处；若新表引入新的公式写法，需相应调整 `core.js`。
 
 ---
 
