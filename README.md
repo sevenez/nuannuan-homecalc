@@ -174,10 +174,6 @@
 │   └── icon-512.png
 ├── release/            现成安装包
 │   └── 暖暖家园计算器-1.210.6.57.apk   正式签名安装包（versionCode 14）
-├── 资料/               原始资料（不参与运行，仅留档）
-│   ├── 无限暖暖-自动列出家园最大利润-可互动表格v2.10.xlsx  算法来源表格
-│   ├── 卖整-凑整方案截图.png
-│   └── raw.json        从 xlsx 提取的中间数据（备用）
 ├── README.md           本文件
 └── android/            安卓工程（可重新构建 APK）
     ├── gradlew         Gradle wrapper（Gradle 9.1.0）
