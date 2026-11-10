@@ -1,0 +1,87 @@
+plugins {
+    id 'com.android.application'
+    // 修改说明（2026-10-20）：移除 'org.jetbrains.kotlin.android' 插件声明。
+    // 原因：构建工具链已升级到 AGP 9.0.1（见根 build.gradle 注释），自 AGP 9.0 起 Kotlin
+    // 支持已内置于 AGP（built-in Kotlin），再应用 KGP 的 android 插件会直接构建失败，
+    // 报错提示"The 'org.jetbrains.kotlin.android' plugin is no longer required"。
+    // 影响：MainActivity.kt 仍由 AGP 内置 Kotlin 正常编译，Kotlin 源码目录与逻辑均不受影响。
+}
+
+// 读取签名配置（keystore.properties，含密钥口令，勿外传）
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    namespace 'com.nuannuan.homecalc'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.nuannuan.homecalc"
+        minSdk 24
+        targetSdk 34
+        // 版本同步（2026-11-10）：versionName 跟随 web 的 APP_VER 1.210.6.57，versionCode 13 → 14；
+        // 内容为 11-10 网页更新（关于与免责新增安卓版下载链接 + 一键复制），签名不变、可直接覆盖安装。
+        // 上一版（2026-11-10）：versionName 1.210.6.56，versionCode 12 → 13；
+        // 内容为 11-10 网页更新（收益率口径整顿 + 我的家园面板重做 + 全屏弹层滚动修复），
+        // 签名不变、可直接覆盖安装。
+        // 上一版（2026-11-08）：versionName 1.210.5.44，versionCode 11 → 12；
+        // 内容为 11-08 网页更新（云端同步 + 重新出包），签名不变、可直接覆盖安装。
+        // 上一版（2026-11-07）：v1.7.0 → v1.7.1（versionCode 10 → 11）：Tab 顺序调整为 计算/卖整/查询/动物/家园。
+        // 上一版：v1.6.2 → v1.7.0（versionCode 9 → 10）：新增独立「动物」Tab
+        // （动物好感度 + 投喂饼干 + 饼干收益总览整体迁出家园页），44 只动物行内实时收益
+        // （每小时利润/利润率，好感度实时联动，成本按能量饼干 10 币/能量基准，1 心可复现社区基准表）；
+        // 「我的」三项（数据版本/配置备份/关于免责）默认折叠移入家园页底部，Tab 仍为 5 个。
+        // 上一版：v1.6.1 → v1.6.2（versionCode 8 → 9）：全站原生 <select> 替换为弹层选择器
+        // （周上限/甜品/加速/调味料/钓鱼/好感/饼干，点行即选），隐藏原生 number spinner 小箭头，
+        // 家具卡收益率改通栏，弹层标题支持自定义。
+        // 上一版：v1.6.0 → v1.6.1（versionCode 7 → 8）：收益率标签简化「收益率(利润/成本)」→「收益率·成本」全站 21 处。
+        // 上一版：v1.5.0 → v1.6.0（versionCode 6 → 7）。
+        // 升级内容：卡片三层化（家具/产物/对比卡主信息+详情折叠，kv 两列对齐等宽数字）；
+        // 主利润数字等对比度修复（WCAG AA）；脚本引用加 ?v= 版本参数（修复局域网 HTTP 缓存卡更新）；
+        // 对比卡默认收起；弹层已选回看 chips / aria / Esc 关闭；按压反馈；A-Z 轨热区。
+        // 上一版：v1.4.0 → v1.5.0（versionCode 5 → 6）。
+        // 升级内容：全屏底部弹层选择器（虚拟滚动/拼音首字母搜索/A-Z 快跳/价格排序）、
+        // 本周 1.2 倍重做为最多 4 个任意组合（b12 数组，旧档迁移）、卖整手动添加升级弹层、
+        // 卖整新增每产物「数量上限」（有界背包求解，方案严格不超上限、仍最少件数）、
+        // 材料筛选改弹层、作物排序修正。versionCode 必须递增。
+        versionCode 14
+        versionName "1.210.6.57"
+    }
+
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            release {
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    // 修改说明（2026-10-20）：删除原 kotlinOptions { jvmTarget = '17' } 配置块。
+    // 原因：该 DSL 由 KGP 提供，AGP 9.0 移除 KGP 后不存在（报"Could not find method kotlinOptions()"）。
+    // 替代逻辑：AGP 9 内置 Kotlin 的字节码目标自动与上方 compileOptions（Java 17）对齐，
+    // 无需（也不能）再单独设置 jvmTarget，Kotlin 编译目标仍为 17，行为与原配置一致。
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.activity:activity-ktx:1.8.2'
+}

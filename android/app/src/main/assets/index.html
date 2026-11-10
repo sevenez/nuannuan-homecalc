@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#ff8fa8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<script>if(/^https?:$/.test(location.protocol)){var l=document.createElement('link');l.rel='manifest';l.href='manifest.json';document.head.appendChild(l)}</script>
+<title>暖暖家园利润计算器</title>
+<link rel="stylesheet" href="style.css?v=1.210.6.57">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="ttl">暖暖家园利润计算器</div>
+  <div class="sub" id="hdrSub"></div>
+</header>
+
+<main id="main">
+
+  <!-- ============ 计算页 ============ -->
+  <section class="page" id="page-calc">
+
+    <!-- A. 本周设置 -->
+    <div class="card week">
+      <div class="chd">
+        <span class="dot wk"></span>
+        <b>本周设置</b>
+        <button class="mini" id="btnResetWeek">新的一周</button>
+      </div>
+      <div class="cbd">
+        <div class="row2">
+          <div class="fld">
+            <label>已卖家园币</label>
+            <input type="number" inputmode="numeric" id="iWeekSold" step="1000">
+          </div>
+          <div class="fld">
+            <label>本周剩余天数</label>
+            <div class="daypick" id="dayPick" role="slider" tabindex="0"
+                 aria-label="本周剩余天数" aria-valuemin="1" aria-valuemax="7" aria-valuenow="4">
+              <div class="dtrack"><div class="dfill" id="dayFill"></div><div class="dthumb" id="dayThumb">4</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="fld">
+          <label>本周 1.2 倍加成</label>
+          <div class="b12slots grid2" id="b12Slots"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 产物对比表：置于「材料筛选」之前 -->
+    <div class="card res">
+      <div class="chd fold" data-fold="cmpBody"><span class="dot b12"></span><b>产物收益对比</b><button type="button" class="iinfo" data-tipid="tip-cmp" aria-label="说明">ⓘ</button><span class="arrow">▾</span></div>
+      <div class="cbd" id="cmpBody">
+        <p class="tip" id="tip-cmp" hidden>同一份家园币预算下，把 1.2 倍产物与手动选择的其他产物放在一起对比：总销售 / 总利润、所需数量、收获轮次、每天收获几次、能否在剩余天内卖到上限。本周 1.2 倍加成最多 4 个（产物 / 家具均可），自动带出到对比；手动产物最多选 3 个，点槽位卡片选择。</p>
+        <div class="grphd"><span class="grp">本周 1.2 倍产物</span><button type="button" class="gset" id="btnSetCmp12">设置</button></div>
+        <div id="cmp12"></div>
+        <div class="grphd" style="margin-top:12px"><span class="grp">非1.2倍产物对比</span><button type="button" class="gset" id="btnSetCmpMan">设置</button></div>
+        <div id="cmpMan"></div>
+      </div>
+    </div>
+
+    <!-- 家具利润 Top 10（材料筛选合并到顶部；可折叠：折叠态卡头显示筛选概要） -->
+    <div class="card res">
+      <div class="chd fold" data-fold="furnBody">
+        <span class="dot rs"></span><b>家具利润Top 10</b>
+        <span class="foldsum" id="furnSum"></span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="cbd" id="furnBody">
+        <!-- 材料筛选（可折叠小节，合并到家具卡片顶部） -->
+        <div class="filtwrap" id="filtInner">
+          <div class="chd fold sub" data-fold="filtBox">
+            <b>材料筛选</b><span class="filtsum" id="filtSum"></span><span class="arrow">▾</span>
+          </div>
+          <div class="cbd" id="filtBox">
+            <div class="fld">
+              <div class="fldhd"><label>想用掉的材料（家具必须包含）</label>
+                <span class="fldacts"><button type="button" class="btn sm" id="btnMatWant">＋ 添加材料</button></span>
+              </div>
+              <div class="tags" id="tWant"></div>
+            </div>
+            <div class="fld">
+              <div class="fldhd"><label>不想用掉的材料（家具不能包含）</label>
+                <span class="fldacts"><button type="button" class="btn sm" id="btnMatAvoid">＋ 添加材料</button><button type="button" class="tbtn sm" id="cAnimal" aria-pressed="true">排除动物</button><button type="button" class="tbtn sm" id="cStar" aria-pressed="true">排除陨星</button></span>
+              </div>
+              <div class="tags" id="tAvoid"></div>
+            </div>
+            <div class="fld">
+              <button type="button" class="sw" id="cOnlyOwned" role="switch" aria-checked="true" data-on="开" data-off="关" aria-label="只看当前等级能做"><span class="swl">只看当前等级能做</span><span class="trk"><span class="kn">开</span></span></button>
+            </div>
+          </div>
+        </div>
+        <div class="fildiv"></div>
+        <div id="outFur"></div>
+      </div>
+    </div>
+
+    <div class="card res" id="card12" style="display:none">
+      <div class="chd fold" data-fold="furn12Body"><span class="dot b12"></span><b>本周 1.2 倍家具</b><span class="arrow">▾</span></div>
+      <div class="cbd" id="furn12Body"></div>
+    </div>
+
+    <div class="card res">
+      <div class="chd fold" data-fold="outProd">
+        <span class="dot pd"></span><b>产物利润排行</b><button type="button" class="iinfo" data-tipid="tip-rank" aria-label="说明">ⓘ</button><span class="arrow">▾</span>
+      </div>
+      <div class="cbd" id="outProd">
+        <p class="tip" id="tip-rank" hidden>排行按「单份利润 × 可达总量」从高到低：可达总量取可养容量与可收获份数中的较小者。</p>
+        <div id="outProdList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 卖整页 ============ -->
+  <section class="page" id="page-sell" hidden>
+    <div class="card sell">
+      <div class="chd">
+        <span class="dot st"></span>
+        <b>家园币卖整</b>
+        <button type="button" class="iinfo" data-tipid="tip-sell" aria-label="说明">ⓘ</button>
+      </div>
+      <div class="cbd">
+        <div class="sellR">本周还能再赚 <b id="sellR">0</b> 家园币</div>
+        <p class="tip" id="tip-sell" hidden>勾选要卖的产物：本周 1.2 倍可直接勾选，相应精粹自动带出，也可补其他产物或家具。下面按凑整逻辑自动算每种卖多少个，把剩余金额恰好卖完。库存不够的产物，可在每行右侧填「数量上限」，方案不会超过上限。</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="chd">
+        <span class="dot wk"></span><b>出售勾选</b><span class="tag" id="pickTag">已选 0 种</span>
+      </div>
+      <div class="cbd">
+        <div id="pickList"></div>
+        <div class="btnrow">
+          <button class="btn" id="btnAddPick">＋ 添加其他产物 / 精粹 / 树木 / 家具</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card res">
+      <div class="chd"><span class="dot rs"></span><b>凑整方案</b><span class="tag" id="fitTag"></span><button type="button" class="iinfo" data-tipid="tip-fit" aria-label="说明">ⓘ</button></div>
+      <div class="cbd" id="sellOut">
+        <p class="tip" id="tip-fit" hidden>按凑整逻辑自动算每种卖多少个，把剩余金额恰好卖完；单价已含 1.2 倍 / 甜食加成。勾选行右侧可填「数量上限」（库存最多卖几个，留空 = 不限），方案不会超过上限；「其他解法」会依次尝试不用最贵的 1/2/3 种产物（某种卖完了时用）。</p>
+        <div id="sellOutList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 查询页 ============ -->
+  <section class="page" id="page-query" hidden>
+    <div class="card">
+      <div class="chd"><b>数据查询</b></div>
+      <div class="cbd">
+        <div class="tabs2">
+          <button class="on" data-q="fur">家具</button>
+          <button data-q="plant">植物</button>
+          <button data-q="fish">鱼</button>
+          <button data-q="star">陨星</button>
+          <button data-q="food">烹饪</button>
+          <button data-q="other">其他</button>
+        </div>
+        <input class="find big" id="qFind" placeholder="输入名称搜索…" autocomplete="off">
+        <div id="qOut"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 家园页（倒数第二个） ============ -->
+  <section class="page" id="page-home" hidden>
+
+    <!-- 我的家园 -->
+    <div class="card home">
+      <div class="chd">
+        <span class="dot hm"></span>
+        <b>我的家园</b>
+        <button type="button" class="iinfo" data-tipid="tip-home" aria-label="说明">ⓘ</button>
+      </div>
+      <div class="cbd">
+        <p class="tip" id="tip-home" hidden>能力等级与「农田鱼塘总数」均为上下两行卡片：小字标题在左上角，大数字为总数。点能力芯片或农田卡弹出气泡：能力等级直接加减；农田卡调整「额外购买」（允许为负，红色，代表未摆出的田 / 池），并标出「等级赠送」，总数 = 两者之和且下限为 0；等级赠送随种植 / 养鱼能力自动变化，各等级明细见「ⓘ」。所有不超过 8 个选项的选择都用气泡，点选即生效。</p>
+
+        <!-- 家园币上限（从计算页移入） -->
+        <div class="fld">
+          <label>本周家园币上限</label>
+          <button type="button" class="fsel" id="sWeekCap"></button>
+        </div>
+
+        <!-- 六大能力：直接平铺，点击卡片用气泡编辑 -->
+        <div class="fld">
+          <label>能力等级</label>
+          <div class="lvgrid2" id="lvGrid"></div>
+        </div>
+
+        <!-- 农田鱼塘总数：四卡一排 -->
+        <div class="fld">
+          <div class="rowhd">
+            <label>农田鱼塘总数</label>
+            <button type="button" class="iinfo" data-tipid="tip-field" aria-label="说明">ⓘ</button>
+          </div>
+          <div class="fieldcards" id="fieldCards"></div>
+          <p class="tip" id="tip-field" hidden></p>
+        </div>
+
+        <div class="row2">
+          <div class="fld">
+            <label>吃的甜品</label>
+            <button type="button" class="fsel" id="sDessert"></button>
+          </div>
+          <div class="fld">
+            <label>免费加速</label>
+            <button type="button" class="fsel" id="sBoost"></button>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="fld"><button type="button" class="sw" id="cWater" role="switch" aria-checked="true" data-on="有" data-off="无" aria-label="4 星浇水套"><span class="swl">4 星浇水套</span><span class="trk"><span class="kn">有</span></span></button></div>
+          <div class="fld"><button type="button" class="sw" id="cBestFish" role="switch" aria-checked="true" data-on="只收" data-off="不限" aria-label="捕鱼只收最高产量"><span class="swl">捕鱼只收最高产量</span><span class="trk"><span class="kn">只收</span></span></button></div>
+          <div class="fld"><button type="button" class="sw" id="cTree" role="switch" aria-checked="true" data-on="卖" data-off="留" aria-label="卖树"><span class="swl">卖树</span><span class="trk"><span class="kn">卖</span></span></button></div>
+          <div class="fld"><button type="button" class="sw" id="cEss" role="switch" aria-checked="true" data-on="卖" data-off="留" aria-label="卖精粹"><span class="swl">卖精粹</span><span class="trk"><span class="kn">卖</span></span></button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 钓鱼熟练度 -->
+    <div class="card fish">
+      <div class="chd"><span class="dot pd"></span><b>钓鱼熟练度</b><button type="button" class="iinfo" data-tipid="tip-fish" aria-label="说明">ⓘ</button></div>
+      <div class="cbd">
+        <p class="tip" id="tip-fish" hidden>钓鱼熟练度影响鱼的产量。铲掉低产量重新养、捕鱼只收最高产量可以节约成本，选「只收」则按最高产量计算（开关在「我的家园」）。</p>
+        <div id="fishGrid"></div>
+        <p class="tip" id="fishTip"></p>
+      </div>
+    </div>
+
+
+    <div class="card">
+      <div class="chd fold" data-fold="meBody2"><b>配置备份</b><span class="arrow">▾</span></div>
+      <div class="cbd" id="meBody2">
+        <p class="tip">「我的家园」「本周设置」「卖整勾选」都会自动保存在本机，下次打开自动恢复，不用重填。新的一周开始时，点计算页的「新的一周」按钮即可清零重填。</p>
+        <div class="btnrow">
+          <button class="btn" id="btnExport">导出配置</button>
+          <button class="btn" id="btnImport">导入配置</button>
+          <button class="btn" id="btnPaste">粘贴配置</button>
+          <button class="btn warn" id="btnClear">清空我的家园</button>
+          <button class="btn warn" id="btnClearWeek">清空本周设置</button>
+          <button class="btn warn" id="btnClearSell">重置卖整勾选</button>
+        </div>
+        <textarea id="ioBox" placeholder="导出/粘贴配置 JSON" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="card">
+      <div class="chd fold" data-fold="meBody3"><b>关于与免责</b><span class="arrow">▾</span></div>
+      <div class="cbd about" id="meBody3">
+        <p id="verLine"></p>
+        <p id="dlLine"><b>安卓版下载</b>：<a id="dlLink" href="https://pan.baidu.com/s/1R72ZaiRu5CAzUPRBSVi94w?pwd=1206" target="_blank" rel="noopener" title="https://pan.baidu.com/s/1R72ZaiRu5CAzUPRBSVi94w?pwd=1206">百度网盘链接</a>（提取码 <b>1206</b>）<button type="button" class="btn sm dlBtn" id="btnCopyDl">复制链接</button></p>
+        <p><b>数据来源</b>：《无限暖暖》家园最大利润表 v2.10<br>制表者：小红薯@祢豆子（鸣谢：@最杰瑞的杰瑞、@供电局、@1群提供数据的暖妈们）</p>
+        <p><b>本工具</b>：非官方粉丝向工具，仅将该表格的计算逻辑移植为手机端应用，数据永久免费。</p>
+        <p class="warnTxt">免责声明：数据来自社区整理，随游戏版本更新可能失效，计算结果仅供参考，请以游戏内实际为准。本工具不含任何游戏美术素材，不收费、不含广告、不收集任何个人信息。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 动物 ============ -->
+  <section class="page" id="page-animal" hidden>
+    <!-- 养殖数量 -->
+    <div class="card count">
+      <div class="chd fold" data-fold="anCountBody"><span class="dot wk"></span><b>养殖数量</b><span class="fnum" id="anCountSum"></span><button type="button" class="iinfo" data-tipid="tip-cap" aria-label="说明">ⓘ</button><span class="arrow">▾</span></div>
+      <div class="cbd" id="anCountBody">
+        <div id="anCount"></div>
+        <p class="tip" id="anCapTip" hidden></p>
+        <p class="tip" id="tip-cap" hidden>可养数量由<b>邀约等级</b>决定（当前 <b id="capLv"></b> 级），超出部分不参与生产。分组：小动物 = 缤纷珠 / 嫩叶石 / 轻羽石；大动物 = 多宝石 / 飞宝珠。点击动物名可标记「排除」。</p>
+      </div>
+    </div>
+
+    <!-- 动物好感度 -->
+    <div class="card animal">
+      <div class="chd fold" data-fold="anGroupsBody"><span class="dot hm"></span><b>动物好感度</b><button type="button" class="iinfo" data-tipid="tip-animal" aria-label="说明">ⓘ</button><span class="arrow">▾</span></div>
+      <div class="cbd" id="anGroupsBody">
+        <p class="tip" id="tip-animal" hidden>邀约 1 级解锁白、3 级解锁棕、6 级解锁蓝；好感度 1–3 心，品质越高产量越高（蓝 &gt; 棕 &gt; 白）。养动物时自动选好感度高、品质高的。<br>收益显示在<b>品质小节头</b>（每小时利润与利润率，成本按能量饼干 10 币/能量基准，与社区基准表同口径；未含悠食与饼干倍率——对所有动物同乘，不影响横向对比），随好感度实时变化。<b>点动物名</b>切换「排除」（灰显，生产计算自动跳过）；<b>点右侧心数</b>调整好感度（排除中的选了心数即恢复）。</p>
+        <div id="anGroups"></div>
+      </div>
+    </div>
+
+    <!-- 投喂饼干 -->
+    <div class="card ck">
+      <div class="chd"><span class="dot b12"></span><b>投喂饼干</b><button type="button" class="iinfo" data-tipid="tip-ck" aria-label="说明">ⓘ</button></div>
+      <div class="cbd">
+        <p class="tip" id="tip-ck" hidden>第一个饼干影响整个动物区成本利润。</p>
+        <div class="fld">
+          <label>选择你要喂食的饼干和数量</label>
+          <div id="ckSlots"></div>
+        </div>
+        <div class="row2">
+          <div class="fld">
+            <label>动物生产模式</label>
+            <div class="seg seg2" data-k="anMode">
+              <button data-v="many">悠食多产</button>
+              <button data-v="normal">常规模式</button>
+            </div>
+          </div>
+          <div class="fld">
+            <label>制作饼干的甜味材料</label>
+            <button type="button" class="fsel" id="sSeason"></button>
+          </div>
+        </div>
+        <div class="fld">
+          <label>做饼干产生的额外产物（精粹 / 树）要卖吗</label>
+          <div class="seg" data-k="sellExtra">
+            <button data-v="both">都卖</button>
+            <button data-v="ess">只卖精粹</button>
+            <button data-v="tree">只卖树</button>
+            <button data-v="none">不卖</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card res">
+      <div class="chd"><span class="dot rs"></span><b>饼干收益总览</b></div>
+      <div class="cbd" id="ckOut"></div>
+    </div>
+  </section>
+
+</main>
+
+<div id="dlgBox" hidden>
+  <div class="dlg-mask"></div>
+  <div class="dlg-card" role="alertdialog" aria-modal="true">
+    <b id="dlgTitle"></b><p id="dlgMsg"></p>
+    <div class="dlg-btns"><button type="button" class="dlg-no" id="dlgNo">取消</button>
+    <button type="button" class="dlg-ok" id="dlgOk">确定</button></div>
+  </div>
+</div>
+
+<!-- 步进器气泡：锚定在卡片旁，无全屏遮罩；标题/信息/按钮可按需隐藏 -->
+<div id="stepBox" hidden>
+  <div class="step-card" id="stepCard" role="dialog" aria-label="编辑">
+    <span class="step-caret" id="stepCaret"></span>
+    <b id="stepTitle" hidden></b>
+    <div class="step-info" id="stepInfo" hidden></div>
+    <div class="step-val">
+      <button type="button" class="stpb" id="stepMinus">−</button>
+      <input type="number" inputmode="numeric" id="stepInput">
+      <button type="button" class="stpb" id="stepPlus">+</button>
+    </div>
+    <div class="dlg-btns" id="stepBtns">
+      <button type="button" class="dlg-no" id="stepCancel">取消</button>
+      <button type="button" class="dlg-ok" id="stepOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 气泡选择框：≤8 选项，点击选项直接生效，无确认/取消 -->
+<div id="pickBox" hidden>
+  <div class="step-card pick-card" id="pickCard" role="listbox" aria-label="选择">
+    <span class="step-caret" id="pickCaret"></span>
+    <div class="pick-list" id="pickOpts"></div>
+  </div>
+</div>
+
+<nav id="tabbar">
+  <button class="on" data-p="calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="8"/><rect x="10" y="6" width="4" height="14"/><rect x="17" y="10" width="4" height="10"/></svg><span>计算</span></button>
+  <button data-p="sell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>卖整</span></button>
+  <button data-p="query"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span>查询</span></button>
+  <button data-p="animal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="9" r="1.7"/><circle cx="11" cy="6.8" r="1.7"/><circle cx="15.5" cy="7.6" r="1.7"/><circle cx="19" cy="11" r="1.7"/><path d="M12.8 11.5c-3.3.4-5.6 2.7-5.6 5.2 0 1.5 1.1 2.6 2.6 2.6h6c1.5 0 2.6-1.1 2.6-2.6 0-2.4-1.9-4.6-4.6-5.2-.3-.1-.7-.1-1 0Z"/></svg><span>动物</span></button>
+  <button data-p="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg><span>家园</span></button>
+  
+</nav>
+
+<!-- ============ 全屏选择弹层 ============
+     multi：卖整·手动添加（分组/排序/搜索，点行勾选，底部完成）
+     single：本周 1.2 倍槽位 / 对比表槽位（点行即选并关闭，清除用槽位卡 ×）
+     mat：材料筛选（想用掉 / 要避开，点行即勾入对应数组） -->
+<div class="sheet" id="pickSheet" role="dialog" aria-modal="true" aria-label="选择弹层" hidden>
+  <div class="sheet-mask" id="sheetMask"></div>
+  <div class="sheet-panel">
+    <div class="dhandle"></div>
+    <div class="sheet-hd">
+      <b id="sheetTitle">选择</b>
+      <span class="tag" id="sheetTag"></span>
+      <div class="sheet-sort" id="sheetSort">
+        <button data-v="def" class="on">默认</button><button data-v="price">价格↓</button>
+      </div>
+      <button class="sheet-x" id="btnSheetClose" aria-label="关闭">✕</button>
+    </div>
+    <div class="sheet-tools" id="sheetSearch">
+      <input class="find" id="fPickAdd" placeholder="搜索名称 / 拼音首字母…" autocomplete="off">
+      <div class="seg sm" id="pickGrp" hidden></div>
+      <div class="seg sm sub" id="pickGrp2" hidden></div>
+    </div>
+    <div class="sheet-body">
+      <div class="sheet-list" id="sheetList">
+        <div id="sheetSpTop" style="height:0"></div>
+        <div id="sheetRows"></div>
+        <div id="sheetSpBot" style="height:0"></div>
+      </div>
+      <div class="sheet-index" id="sheetIndex" hidden></div>
+    </div>
+    <div class="sheet-ft" id="sheetFt">
+      <div id="sheetChips" class="sheetchips"></div>
+      <button class="sheet-done" id="btnSheetDone">完成</button>
+    </div>
+  </div>
+</div>
+
+<script src="data.js?v=1.210.6.57"></script>
+<script src="core.js?v=1.210.6.57"></script>
+<script src="app.js?v=1.210.6.57"></script>
+</body>
+</html>

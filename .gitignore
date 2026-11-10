@@ -1,0 +1,61 @@
+# ===== 签名密钥与口令（最敏感，严禁上传）=====
+android/keystore/
+android/keystore.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+keystore.properties
+
+# ===== 环境变量与凭证类 =====
+.env
+.env.*
+*.key
+*credential*
+*secret*
+
+# ===== Android / Gradle 构建产物 =====
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/captures/
+*.apk.idsig
+
+# ===== IDE 与编辑器 =====
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== 临时/备份/中间文件 =====
+*.log
+*.tmp
+*.bak
+*.swp
+xlsx_extract/
+# raw.json：由 xlsx 提取的全量备份（可再生成，详见《原表结构对照.md》）
+# 注意：.gitignore 规则行内不能写注释，否则规则失效
+raw.json
+__pycache__/
+*.pyc
+
+# ===== 本地工具产物（不入库）=====
+xhs-release/
+.workbuddy/
+.trae-html-share-packages/
+.screenshots/
+generated-images/
+*.genie
+
+# ===== release 仅保留最新 APK（历史包不入库）=====
+release/*
+!release/暖暖家园计算器-1.210.6.57.apk
+
+# ===== 过程文档（不入库）=====
+审计报告.md
+UI评估报告.md
+UI-UX全面评估-v1.5.md

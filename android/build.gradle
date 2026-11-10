@@ -1,0 +1,13 @@
+// 构建工具链升级（2026-10-20）：
+// 原为 AGP 8.2.2 + Kotlin 1.9.22 + Gradle 8.9，仅支持运行在 Java 21 及以下，而本机只有 JDK 25，
+// 故整体升级为「Gradle 9.1.0 + AGP 9.0.1 + Kotlin 2.4.0」组合：
+//   - Gradle 9.1.0 起官方支持以 Java 25 运行 daemon；
+//   - AGP 9.0.1 官方要求最低 Gradle 9.1.0，JDK 要求最低 17（无上限）；
+//   - KGP 2.4.0 官方兼容矩阵为 Gradle 7.6.3~9.5.0、AGP 8.5.2~9.1.0，该组合完全落在矩阵内。
+// 修改说明（2026-10-20）：移除 KGP（org.jetbrains.kotlin.android 2.4.0）的 apply false 声明。
+// 原因：AGP 9.0.1 已内置 Kotlin 支持（built-in Kotlin），app 模块不再（也不能）应用 KGP 的
+// android 插件，根构建文件中的插件版本声明随之删除，避免声明未使用的插件。
+// （上方升级注释中"Kotlin 2.4.0"的组合描述仅作历史记录保留，实际 KGP 已不再参与构建。）
+plugins {
+    id 'com.android.application' version '9.0.1' apply false
+}

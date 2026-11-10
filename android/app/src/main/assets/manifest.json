@@ -1,0 +1,15 @@
+{
+  "name": "暖暖家园利润计算器",
+  "short_name": "家园利润",
+  "description": "无限暖暖家园经营利润计算工具（非官方粉丝作品）",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdf6f4",
+  "theme_color": "#ff8fa8",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

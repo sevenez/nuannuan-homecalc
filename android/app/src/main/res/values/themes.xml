@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.HomeCalc" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/barDark</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:windowBackground">#FDF6F4</item>
+    </style>
+</resources>
