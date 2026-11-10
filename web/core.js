@@ -128,8 +128,8 @@
       season: '果汁甜甜根', // 制作饼干的甜味材料（影响饼干成本）
       sellExtra: 'both',    // both=树和精粹都卖 / ess=只卖精粹 / tree=只卖树 / none=不卖
 
-      /* ===== F. 产物对比表（手动选非 1.2 倍产物） ===== */
-      cmpManual: ['', '', ''],
+      /* ===== F. 产物对比表（自选非 1.2 倍产物，不限数量） ===== */
+      cmpManual: [],
     };
   }
 
@@ -683,7 +683,8 @@
     const src = names && names.length ? names : allProduce();
     for (const n of src) {
       if (!n || n === '不选') continue;
-      const r = calcProduce(S, n, false);
+      /* 本周 1.2 倍产物按 1.2 价计入（与徽章、产物对比卡同口径——否则排行卡与对比卡上下数字对不上） */
+      const r = calcProduce(S, n, is12(S, n));
       if (r) list.push(r);
     }
     const total = r => Math.min(r.capacity, r.portions) * r.profit;

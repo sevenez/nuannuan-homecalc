@@ -1,6 +1,6 @@
-const VER = '1.210.6.59';   // 与 app.js 的 APP_VER 同步；改动任何网页文件都要升版本，否则离线缓存不更新
+const VER = '1.210.7.64';   // 与 app.js 的 APP_VER 同步；改动任何网页文件都要升版本，否则离线缓存不更新
 const CACHE = 'nd-home-' + VER;
-const FILES = ['./','./index.html','./style.css?v=1.210.6.59','./core.js?v=1.210.6.59','./app.js?v=1.210.6.59','./data.js?v=1.210.6.59','./manifest.json'];
+const FILES = ['./','./index.html','./style.css?v=1.210.7.64','./core.js?v=1.210.7.64','./app.js?v=1.210.7.64','./data.js?v=1.210.7.64','./manifest.json'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
 });

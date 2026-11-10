@@ -11,7 +11,7 @@
                      'dessert','waterSuit','boost','extraSmall','extraMid','extraBig','extraPond',
                      'sellTree','sellEss','onlyOwned',
                      'fishLv','onlyBestFish','anAff','anOff','ckSlots','anMode','anCount','season','sellExtra',
-                     'cmpManual'];
+                     'cmpManual','prodSort','prodHide'];
   const WEEK_KEYS = ['weekCap','weekSold','daysLeft','b12',
                      'wantMats','avoidMats','excludeStar'];
 
@@ -35,7 +35,12 @@
       if (!S.fishLv || typeof S.fishLv !== 'object') S.fishLv = C.defaultState().fishLv;
       if (!S.anCount || typeof S.anCount !== 'object') S.anCount = C.defaultState().anCount;
       if (!Array.isArray(S.ckSlots) || S.ckSlots.length !== 3) S.ckSlots = C.defaultState().ckSlots;
-      if (!Array.isArray(S.cmpManual) || S.cmpManual.length !== 3) S.cmpManual = ['', '', ''];
+      // 旧档迁移：3 槽固定数组 → 任意长度自选列表（压实空槽）
+      if (!Array.isArray(S.cmpManual)) S.cmpManual = [];
+      S.cmpManual = S.cmpManual.filter(n => typeof n === 'string' && n);
+      if (S.prodSort !== 'cat' && S.prodSort !== 'profit') S.prodSort = 'cat';
+      if (!S.prodHide || typeof S.prodHide !== 'object')
+        S.prodHide = { plant: false, fish: false, star: false, rare: false };
       if (!Array.isArray(S.anOff)) S.anOff = [];
       if (S.excludeStar) {   // 旧档迁移：一键排除陨星 → 陨星写入排除列表（状态改由列表推导）
         C.STAR.forEach(st => { if (S.avoidMats.indexOf(st) < 0) S.avoidMats.push(st); });
@@ -112,7 +117,7 @@
     return d > 0 ? `${d} 天 ${r} 小时` : `${Math.round(h * 100) / 100} 小时`;
   }
   /* 应用版本（与 sw.js 的 VER 保持一致；改动任何网页文件都要同步升级，用于刷新离线缓存） */
-  const APP_VER = '1.210.6.59';
+  const APP_VER = '1.210.7.64';
   /* 打包时间：每次改版发布时更新，显示在「关于与免责」第一条 */
   const BUILD_AT = '2026-11-10 15:16';
   /* 安卓版安装包下载（百度网盘）：链接自带 ?pwd= 提取码参数，复制后可直接打开，无需另填提取码 */
@@ -437,6 +442,7 @@
   }
 
   let furTotal = 0;
+  let topSet = new Set();   // 全页 Top5 粉标卡片（name|profit 键，render() 内重算）
   function render() {
     const left = Math.max(S.weekCap - S.weekSold, 0);
     $('#hdrSub').textContent = `剩余家园币 ${nfmt(left)} · 还剩 ${S.daysLeft} 天`;
@@ -444,31 +450,36 @@
     /* 家具排行 */
     const R = C.rankFurniture(S, 10);
     furTotal = R.total;
+
+    /* 1.2 倍家具（先算，参与全页 Top5 评比） */
+    const f12 = C.calcFurn12(S);
+
+    /* 全页 Top5 粉标池（用户口径：整个计算页所有卡片放一起比，取利润最高的 5 张标粉；
+     * 池 = 1.2倍产物对比卡 + 自选对比卡 + 家具Top10 + 本周1.2倍家具卡；备选产物一览卡不参与——它是互补参照 */
+    const pool = [];
+    const pushCmp = (n, is12) => { const p = C.calcProduce(S, n, is12); if (p && !p.locked) pool.push({ k: p.name + '|' + p.cmpProfit, v: p.cmpProfit }); };
+    (S.b12 || []).filter(n => D.mat[n]).forEach(n => pushCmp(n, true));
+    S.cmpManual.filter(Boolean).forEach(n => pushCmp(n, false));
+    R.list.forEach(r => pool.push({ k: r.name + '|' + r.totalProfit, v: r.totalProfit }));
+    if (f12) pool.push({ k: f12.name + '|' + f12.totalProfit, v: f12.totalProfit });
+    topSet = new Set(pool.sort((a, b) => b.v - a.v).slice(0, 5).map(x => x.k));
+
     const rc = document.getElementById('resCnt');
     if (rc) rc.textContent = `${R.total} 件可选`;
     $('#outFur').innerHTML = R.list.length
-      ? R.list.map((r, i) => furCard(r, i + 1)).join('')
+      ? R.list.map((r, i) => furCard(r, i + 1, topSet.has(r.name + '|' + r.totalProfit))).join('')
       : emptyGo('没有符合条件的家具', '调整筛选', '#filtInner');
 
-    /* 1.2 倍家具 */
-    const f12 = C.calcFurn12(S);
     $('#card12').style.display = f12 ? '' : 'none';
-    if (f12) $('#furn12Body').innerHTML = furCard(f12, '★');
+    if (f12) $('#furn12Body').innerHTML = furCard(f12, '★', topSet.has(f12.name + '|' + f12.totalProfit));
 
-    /* 产物排行 */
-    const b12 = (S.b12 || []).filter(n => D.mat[n]);   // 1.2 倍产物（家具名不在 D.mat，自动排除）置顶
-    let P = C.rankProduce(S, null).filter(p => !p.locked);
-    // 本周 1.2 倍产物置顶
-    const top = b12.map(n => P.find(x => x.name === n)).filter(Boolean);
-    P = top.concat(P.filter(x => top.indexOf(x) < 0)).slice(0, 12);
-    /* 榜内利润最高的一张 → 粉底粉条高亮（整页统一：每组最赚一张） */
-    const maxP = P.reduce((m, x) => (!m || x.total > m.total ? x : m), null);
-    $('#outProdList').innerHTML = P.length ? P.map(p => prodCard(p, maxP && maxP.name === p.name)).join('') : '<div class="empty">暂无</div>';
+    /* 备选产物一览（与已选对比卡互补，一个产物只出现在其中一张；见 renderBackup） */
+    renderBackup();
 
     /* 产物对比表 */
     renderCmp();
 
-    /* 槽位卡片：本周 1.2 倍（5 槽）；对比表 3 槽在 renderCmp 内 */
+    /* 槽位卡片：本周 1.2 倍（5 槽）；自选对比产物列表在 renderCmp 内（不限数量） */
     renderB12Slots();
 
     /* 家园页 / 动物页 懒渲染 */
@@ -583,8 +594,11 @@
     });
   }
 
-  /* 家具卡片 */
-  function furCard(r, rank) {
+  /* 详情折叠区的 0 值项不输出（用户：0 的也删除） */
+  const kvz = (label, val, unit = '') => (val ? `<span>${label} <b>${nfmt(val)}${unit}</b></span>` : '');
+
+  /* 家具卡片；isTop=全页 Top5 粉标（render() 传入） */
+  function furCard(r, rank, isTop) {
     const mats = r.mats.map(([n, q]) => `${n}×${q}`).join('、');
     const better = r.better
       ? '<span class="warnb no">做家具卖更赚</span>'
@@ -593,8 +607,7 @@
     const plan = C.craftPlan(S, r.count, r.time);
     const mid = 'fur-' + rank;
     /* 三层结构：头行(名称+总利润) / 主行(售卖·排程·利润对比) / 详情▾（全称口径，供对拍核对） */
-    /* 色条语义化：家具卡=金，Top10 前五=粉条，第 1 名=粉底粉条 */
-    return `<div class="it${rank === 1 ? ' g1' : rank > 1 && rank <= 5 ? ' g5' : ''}">
+    return `<div class="it${isTop ? ' g1' : ''}">
       <div class="h">
         <span class="rk">${rank}</span>
         <span class="nm">${r.name}</span>
@@ -614,23 +627,23 @@
         <span>做家具利润 <b>${nfmt(r.profitPer)}</b></span>
         <span>卖材料利润 <b>${nfmt(r.profitMat)}</b></span>
       </div>
+      <div class="mats">${mats}</div>
       <div class="ftrow">${better}${plan ? `<span class="warnb ${plan.enough ? 'no' : 'yes'}">${S.daysLeft} 天时间${plan.enough ? '还够' : '不够'}</span>` : ''}<button class="more" data-mid="${mid}">详情 ▾</button></div>
       <div class="det" id="det-${mid}" hidden>
         <div class="kv">
-          <span>所有材料成本 <b>${nfmt(r.cost)}</b></span>
-          <span>所有材料售卖 <b>${nfmt(r.matSale)}</b></span>
-          <span>额外产物 <b>${nfmt(r.extra)}</b></span>
-          <span>卖家具总销售 <b>${nfmt(r.totalSale)}</b></span>
-          <span>卖家具总利润 <b>${nfmt(r.totalProfit)}</b></span>
-          <span>家具产量 <b>${r.yield}</b></span>
-          <span>制作 <b>${r.time}</b> 分钟</span>
+          ${kvz('所有材料成本', r.cost)}
+          ${kvz('所有材料售卖', r.matSale)}
+          ${kvz('额外产物', r.extra)}
+          ${kvz('卖家具总销售', r.totalSale)}
+          ${kvz('卖家具总利润', r.totalProfit)}
+          ${kvz('家具产量', r.yield)}
+          ${kvz('制作', r.time, ' 分钟')}
         </div>
         <div class="kv one">
           <span>材料毛利率 <b>${pct(r.matRateSale)}</b></span>
           <span>家具毛利率 <b>${pct(r.rateSale)}</b></span>
         </div>
-        <div class="kv"><span class="wide">制作1次额外产物售价 <b>精粹 ${nfmt(r.ess)} · 树 ${nfmt(r.tree)} · 合计 ${nfmt(r.extra)}</b></span></div>
-        <div class="mats">${mats}</div>
+        ${r.extra ? `<div class="kv"><span class="wide">制作1次额外产物售价 <b>精粹 ${nfmt(r.ess)} · 树 ${nfmt(r.tree)} · 合计 ${nfmt(r.extra)}</b></span></div>` : ''}
       </div>
     </div>`;
   }
@@ -647,8 +660,8 @@
       <span>收满约需 <b>${days}</b></span>`;
   }
 
-  /* 产物利润排行卡：产物卡=紫条；榜内利润最高一张粉底粉条；chip 归底行 */
-  function prodCard(p, isTop) {
+  /* 备选产物一览卡：紫条；不参与全页 Top5 粉标（与已选对比卡互补） */
+  function prodCard(p) {
     if (p.locked) {
       return `<div class="it pd">
         <div class="h"><span class="nm">${p.name}${p.is12 ? ' <span class="b12t">1.2倍</span>' : ''}</span></div>
@@ -657,7 +670,7 @@
     }
     const sched = schedSpans(p);
     const mid = 'prod-' + p.name;
-    return `<div class="it pd${isTop ? ' g1' : ''}">
+    return `<div class="it pd">
       <div class="h">
         <span class="nm">${p.name}${p.is12 ? ' <span class="b12t">1.2倍</span>' : ''}</span>
         <span class="pf">${nfmt(p.total)}</span>
@@ -673,12 +686,56 @@
       <div class="det" id="det-${mid}" hidden>
         <div class="kv">
           <span>卖满需 <b>${nfmt(p.portions)}</b> 份</span>
-          <span>${p.kind === '鱼' ? '鱼塘' : p.kind === '陨星' ? '采星' : '农田'} <b>${p.plots}</b></span>
-          <span>成熟 <b>${p.grow}</b> 分</span>
-          <span>每天可收 <b>${p.perDay}</b> 次</span>
+          ${kvz(p.kind === '鱼' ? '鱼塘' : p.kind === '陨星' ? '采星' : '农田', p.plots)}
+          ${kvz('成熟', p.grow, ' 分')}
+          ${kvz('每天可收', p.perDay, ' 次')}
         </div>
       </div>
     </div>`;
+  }
+
+  /* ================= 备选产物一览 ================= */
+  /* 稀有作物（用户定名）：六个随机变异双色品种，可遇不可求——数据特征=产量1、无精粹/树加成、单价最高 */
+  const RARE_CROPS = ['瑰霞双色杯杯香', '星光双色铃铃草', '锦绣双色蓬蓬兰', '暮光双色团团花', '云绮叮当果', '浅桃织云果'];
+  /* 与「已选产物对比」互补：已进对比的产物（1.2倍组 ∪ 自选组）不再重复显示；
+   * 排序 S.prodSort：cat=默认分类（植物→鱼→陨星，组内按 data.js 原序）/ profit=按利润全局降序；
+   * 排除 S.prodHide：plant/fish/star 大类 + rare 稀有作物（rare 在 plant 排除时被大类覆盖，置灰失效） */
+  function renderBackup() {
+    const picked = new Set();
+    (S.b12 || []).filter(n => D.mat[n]).forEach(n => picked.add(n));
+    S.cmpManual.filter(Boolean).forEach(n => picked.add(n));
+    let P = C.rankProduce(S, null).filter(p => !p.locked && !picked.has(p.name));
+    const H = S.prodHide || {};
+    if (H.plant) P = P.filter(p => p.kind !== '作物');
+    if (H.fish) P = P.filter(p => p.kind !== '鱼');
+    if (H.star) P = P.filter(p => p.kind !== '陨星');
+    if (H.rare) P = P.filter(p => RARE_CROPS.indexOf(p.name) < 0);
+    /* 控件态同步：排序钮标签 + 排除钮按压态（rare 被 plant 覆盖时置灰） */
+    const sortSel = $('#prodSortSel');
+    if (sortSel) sortSel.textContent = S.prodSort === 'profit' ? '按利润' : '默认分类';   // 箭头由 .fsel::after 提供
+    ['plant', 'fish', 'star', 'rare'].forEach(k => {
+      const b = document.getElementById('ph-' + k);
+      if (!b) return;
+      const covered = k === 'rare' && !!H.plant;
+      b.classList.toggle('on', !!H[k] && !covered);
+      b.setAttribute('aria-pressed', String(!!H[k] && !covered));
+      b.disabled = covered;
+    });
+    let html;
+    if (!P.length) {
+      html = '<div class="empty">已全部加入对比或被排除</div>';
+    } else if (S.prodSort === 'profit') {
+      html = P.slice().sort((a, b) => b.total - a.total).map(prodCard).join('');
+    } else {
+      /* 默认分类：植物/鱼/陨星 分组头（作物对外显示「植物」，与查询页同口径）；
+       * 组内按 PROD_SEQ 数据表原序（rankProduce 带来的利润序在这里不作数——「默认」与「按利润」两档才有区分度） */
+      const bySeq = P.slice().sort((a, b) => prodIdx(a.name) - prodIdx(b.name));
+      html = [['作物', '植物'], ['鱼', '鱼'], ['陨星', '陨星']]
+        .filter(([k]) => bySeq.some(p => p.kind === k))
+        .map(([k, label]) => `<div class="grphd"><span class="grp">${label}</span></div>` +
+          bySeq.filter(p => p.kind === k).map(prodCard).join('')).join('');
+    }
+    $('#outProdList').innerHTML = html;
   }
 
   /* ================= 产物对比 ================= */
@@ -690,15 +747,11 @@
       return `<div class="cmprow"><div class="cmpname">${p.name}</div>
         <div class="kv"><span class="warnb yes">能力等级不足，还没解锁</span></div></div>`;
     }
-    /* 鱼与陨星同口径 10 个 = 1 kg：鱼带 1 位小数（与家园页鱼产量一致），陨星取整；陨星不叠加精粹/树 */
-    const qtyBase = p.kind === '陨星'
-      ? `${nfmt(p.cmpQty)} 个（约 ${Math.round(p.cmpQty / 10)} kg）`
-      : p.kind === '鱼'
-        ? `${nfmt(p.cmpQty)} 个（约 ${(p.cmpQty / 10).toFixed(1)} kg）`
-        : `${nfmt(p.cmpQty)} 个`;
-    const qtyExtra = p.kind === '陨星'
-      ? qtyBase
-      : `${qtyBase}${S.sellEss && p.cmpEss ? ` + ${nfmt(p.cmpEss)} 个精粹` : ''}${S.sellTree && p.cmpTree ? ` + ${nfmt(p.cmpTree)} 颗树` : ''}`;
+    /* 鱼 10 个 = 1 kg（与家园页鱼产量同口径，1 位小数，无「约」字）；星/作物/动物按个计，不带 kg */
+    const qtyBase = p.kind === '鱼'
+      ? `${nfmt(p.cmpQty)} 个（${(p.cmpQty / 10).toFixed(1)} kg）`
+      : `${nfmt(p.cmpQty)} 个`;
+    const qtyExtra = `${qtyBase}${S.sellEss && p.cmpEss ? ` + ${nfmt(p.cmpEss)} 个精粹` : ''}${S.sellTree && p.cmpTree ? ` + ${nfmt(p.cmpTree)} 颗树` : ''}`;
     const sched = schedSpans(p);
     const head = `<div class="cmpname">${p.name}${p.is12 ? ' <span class="b12t">1.2倍</span>' : ''}<span class="pf">${nfmt(p.cmpProfit)}</span></div>`;
     /* 结论 chip 口径：动物看「全卖还需天数 vs 剩余天数」，其余看 enough */
@@ -720,13 +773,13 @@
       ${foot}
       <div class="det" id="det-cmp-${p.name}" hidden>
         <div class="kv">
-          <span>成本 <b>${nfmt(p.cost)}</b></span>
-          <span>产出周期 <b>${p.grow} 分钟</b></span>
+          ${kvz('成本', p.cost)}
+          ${kvz('产出周期', p.grow, ' 分钟')}
           <span>最低产量 <b>${nfmt(p.yield)}</b></span>
           <span>毛利率 <b>${pct(p.rateSale)}</b></span>
           <span>产物单价 <b>${nfmt(p.price)}</b></span>
-          <span>精粹价 <b>${nfmt(p.essP)}</b></span>
-          <span>树木价 <b>${nfmt(p.treeP)}</b></span>
+          ${kvz('精粹价', p.essP)}
+          ${kvz('树木价', p.treeP)}
         </div>
       </div>
     </div>`;
@@ -742,34 +795,27 @@
       ${foot}
       <div class="det" id="det-cmp-${p.name}" hidden>
         <div class="kv">
-          <span>成本/份 <b>${nfmt(p.cost)}</b></span>
-          <span>成熟 <b>${p.grow}</b> 分钟</span>
-          <span>最低产量 <b>${p.yield}</b></span>
+          ${kvz('成本/份', p.cost)}
+          ${kvz('成熟', p.grow, ' 分钟')}
+          <span>最低产量 <b>${nfmt(p.yield)}</b></span>
           <span>毛利率 <b>${pct(p.rateSale)}</b></span>
           <span>产物单价 <b>${nfmt(p.price)}</b></span>
-          <span>精粹价 <b>${nfmt(p.essP)}</b></span>
-          <span>树木价 <b>${nfmt(p.treeP)}</b></span>
+          ${kvz('精粹价', p.essP)}
+          ${kvz('树木价', p.treeP)}
         </div>
       </div>
     </div>`;
   }
 
-  /* 本组利润最高（排除未解锁）→ cmpRow 粉底粉条高亮 */
-  function topNameOf(rows) {
-    let top = null;
-    rows.forEach(p => { if (p && !p.locked && (top == null || p.cmpProfit > top.cmpProfit)) top = p; });
-    return top ? top.name : null;
-  }
+  /* 渲染两个对比组；isTop=全页 Top5 粉标（render() 算好的 topSet） */
   function renderCmp() {
     const r12 = (S.b12 || []).filter(n => D.mat[n]).map(n => C.calcProduce(S, n, true));
-    const t12 = topNameOf(r12);
     $('#cmp12').innerHTML = r12.length
-      ? r12.map(p => cmpRow(p, p.name === t12)).join('')
+      ? r12.map(p => cmpRow(p, topSet.has(p.name + '|' + p.cmpProfit))).join('')
       : '';
     const rMan = S.cmpManual.filter(Boolean).map(n => C.calcProduce(S, n, false));
-    const tMan = topNameOf(rMan);
     $('#cmpMan').innerHTML = rMan.length
-      ? rMan.map(p => cmpRow(p, p.name === tMan)).join('')
+      ? rMan.map(p => cmpRow(p, topSet.has(p.name + '|' + p.cmpProfit))).join('')
       : '';
   }
 
@@ -1216,7 +1262,7 @@
    *            essOff: 排除的精粹, pick: 手动添加的产物/家具名, caps: { 名称: 数量上限 } }
    * 精粹只随本周 1.2 倍产物自动带出（选了 1.2 倍才出现相应精粹），无"全部精粹"总开关 */
   let pickAddOpen = false;                             // 全屏选择弹层开关
-  let sheetMode = 'multi', sheetSlot = null, sheetMat = '';  // multi=卖整添加 / single=槽位单选 / mat=材料筛选
+  let sheetMode = 'multi', sheetMat = '';  // multi=卖整添加 / cmp=自选对比产物 / b12=1.2倍多选 / mat=材料筛选 / pick=单选列表
   let pickQ = '', pickGrp = 'all', pickSort = 'def';   // 弹层内搜索 / 分组 / 排序
   let sheetRowsCache = [], sheetRaf = 0, sheetTimer = 0;
   let altIdx = 0, altList = null, altKey = '';          // 其他解法缓存
@@ -1479,7 +1525,7 @@
     if (sheetMode === 'multi') return '选择要卖的物品';
     if (sheetMode === 'b12') return '选择本周 1.2 倍（点选添加）';
     if (sheetMode === 'mat') return sheetMat === 'want' ? '添加想用掉的材料' : '添加不想用掉的材料';
-    if (sheetMode === 'cmp') return '选择非1.2倍对比产物（最多 3 个）';
+    if (sheetMode === 'cmp') return '选择自选产物（不限数量，动物也可选）';
     return '选择手动对比产物';
   }
   let sheetOpenT = 0;
@@ -1522,7 +1568,6 @@
   }
   function openPickSheet(mode, arg) {
     sheetMode = mode;
-    if (mode === 'single') sheetSlot = arg;
     if (mode === 'mat') sheetMat = arg;
     pickAddOpen = true; pickQ = ''; pickSort = 'def'; pickGrp = 'all'; pickTop = 'prod';
     const box = $('#pickSheet');
@@ -1595,15 +1640,14 @@
         pickGrp = b.dataset.v; renderSheetChrome(); renderSheetList(false);
       });
     }
-    $('#sheetFt').style.display = (sheetMode === 'single' || sheetMode === 'pick') ? 'none' : '';
+    $('#sheetFt').style.display = sheetMode === 'pick' ? 'none' : '';
     $('#sheetSort').hidden = sheetMode === 'pick';
     $('#sheetSearch').hidden = sheetMode === 'pick';
     const tag = $('#sheetTag');
-    if (sheetMode === 'pick' || sheetMode === 'single') tag.textContent = '';
-    
+    if (sheetMode === 'pick') tag.textContent = '';
     else if (sheetMode === 'b12') tag.textContent = '已选 ' + (S.b12 || []).length + '/4';
     else if (sheetMode === 'mat') tag.textContent = '已选 ' + (sheetMat === 'want' ? S.wantMats : S.avoidMats).length + ' 种';
-    else if (sheetMode === 'cmp') tag.textContent = '已选 ' + S.cmpManual.filter(Boolean).length + '/3';
+    else if (sheetMode === 'cmp') tag.textContent = '已选 ' + S.cmpManual.length;
     else tag.textContent = '已选 ' + sellPool().length + ' 种';
     $$('#sheetSort button').forEach(b => b.classList.toggle('on', b.dataset.v === pickSort));
   }
@@ -1613,7 +1657,6 @@
     if (sheetMode === 'mat') list = getMatList();
     else if (sheetMode === 'cmp') list = getSlotList('cmp');
     else if (sheetMode === 'pick') list = (listPick ? listPick.items : []).map(it => ({ name: it.label, v: it.v }));
-    else if (sheetMode === 'single') list = getSlotList('cmp');
     else if (sheetMode === 'b12') {
       const all = getB12List();
       list = pickTop === 'fur' ? all.filter(x => x.cat === 'fur') : all.filter(x => x.cat !== 'fur');
@@ -1646,7 +1689,6 @@
       autoEssNames().forEach(m => { autoSet[m] = 1; });
     }
     const h = [];
-    const curVal = sheetMode === 'single' ? S.cmpManual[+sheetSlot.slice(3)] : null;
     for (let i = start; i < end; i++) {
       const x = list[i];
       let on, badge = '', tap = 'pick';
@@ -1656,8 +1698,7 @@
           '<span class="pn">' + x.name + '</span>' + (on ? '<span class="pck">✓</span>' : '') + '</div>');
         continue;
       }
-      if (sheetMode === 'single') on = curVal === x.name;
-      else if (sheetMode === 'cmp') on = S.cmpManual.indexOf(x.name) >= 0;
+      if (sheetMode === 'cmp') on = S.cmpManual.indexOf(x.name) >= 0;
       else if (sheetMode === 'b12') on = (S.b12 || []).indexOf(x.name) >= 0;
       else if (sheetMode === 'mat') on = (sheetMat === 'want' ? S.wantMats : S.avoidMats).indexOf(x.name) >= 0;
       else if (b12set[x.name]) { on = sellCfg.b12off.indexOf(x.name) < 0; badge = '<span class="b12t">1.2倍</span>'; tap = 'b12'; }
@@ -2023,9 +2064,17 @@
       if (del) { S.b12.splice(+del.dataset.deli, 1); save(); calc(); return; }
       if (ev.target.closest('[data-addb12]') || ev.target.closest('[data-sloti]')) openPickSheet('b12');
     });
-    // 产物对比：两个「设置」分别开 1.2 倍多选 / 非1.2 倍对比多选（不再用行内槽位卡片）
+    // 产物对比：两个「设置」分别开 1.2 倍多选 / 自选产物多选（不限数量）
     $('#btnSetCmp12').onclick = () => openPickSheet('b12');
     $('#btnSetCmpMan').onclick = () => openPickSheet('cmp');
+    // 备选产物一览：排序气泡 + 排除切换钮（植物/鱼/陨星/稀有作物；rare 被 plant 覆盖时按钮置灰）
+    $('#prodSortSel').onclick = ev => openBubblePick(ev.currentTarget, [
+      { v: 'cat', label: '默认分类（植物→鱼→陨星）' },
+      { v: 'profit', label: '按利润（从高到低）' },
+    ], S.prodSort, v => { S.prodSort = v; save(); calc(); });
+    ['plant', 'fish', 'star', 'rare'].forEach(k => {
+      $('#ph-' + k).onclick = () => { S.prodHide[k] = !S.prodHide[k]; save(); calc(); };
+    });
     // 材料筛选：弹层（mat）
     $('#btnMatWant').onclick = () => openPickSheet('mat', 'want');
     $('#btnMatAvoid').onclick = () => openPickSheet('mat', 'avoid');
@@ -2055,19 +2104,10 @@
         if (it && lp) lp.onPick(it.v);
         return;
       }
-      if (sheetMode === 'single') {
-        S.cmpManual[+sheetSlot.slice(3)] = n;
-        save(); calc(); closePickSheet(); return;
-      }
       if (sheetMode === 'cmp') {
-        const arr = S.cmpManual;
-        const i = arr.indexOf(n);
-        if (i >= 0) arr[i] = '';                                // 再点已选 = 取消
-        else {
-          const slot = arr.indexOf('');
-          if (slot < 0) { toast('最多选 3 个（点已选的可取消）'); return; }
-          arr[slot] = n;
-        }
+        const i = S.cmpManual.indexOf(n);
+        if (i >= 0) S.cmpManual.splice(i, 1);                   // 再点已选 = 移除
+        else S.cmpManual.push(n);                               // 自选不限数量
         save(); calc(); renderSheetChrome(); renderSheetList(true); return;
       }
       if (sheetMode === 'b12') {

@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <script>if(/^https?:$/.test(location.protocol)){var l=document.createElement('link');l.rel='manifest';l.href='manifest.json';document.head.appendChild(l)}</script>
 <title>暖暖家园利润计算器</title>
-<link rel="stylesheet" href="style.css?v=1.210.6.59">
+<link rel="stylesheet" href="style.css?v=1.210.7.64">
 </head>
 <body>
 
@@ -51,14 +51,14 @@
       </div>
     </div>
 
-    <!-- 产物对比表：置于「材料筛选」之前 -->
+    <!-- 已选产物对比：置于「材料筛选」之前；与下方「备选产物一览」互补，一个产物只出现在其中一张 -->
     <div class="card res">
-      <div class="chd fold" data-fold="cmpBody"><span class="dot b12"></span><b>产物收益对比</b><button type="button" class="iinfo" data-tipid="tip-cmp" aria-label="说明">ⓘ</button><span class="arrow">▾</span></div>
+      <div class="chd fold" data-fold="cmpBody"><span class="dot b12"></span><b>已选产物对比</b><button type="button" class="iinfo" data-tipid="tip-cmp" aria-label="说明">ⓘ</button><span class="arrow">▾</span></div>
       <div class="cbd" id="cmpBody">
-        <p class="tip" id="tip-cmp" hidden>同一份家园币预算下，把 1.2 倍产物与手动选择的其他产物放在一起对比：总销售 / 总利润、所需数量、收获轮次、每天收获几次、能否在剩余天内卖到上限。本周 1.2 倍加成最多 4 个（产物 / 家具均可），自动带出到对比；手动产物最多选 3 个，点槽位卡片选择。</p>
+        <p class="tip" id="tip-cmp" hidden>同一份家园币预算下，对比已加入的产物：总销售 / 总利润、所需数量、收获排程、能否在剩余天内卖到上限。本周 1.2 倍产物自动带入（最多 4 个，产物 / 家具均可，产物在这里对比、家具在「本周 1.2 倍家具」卡）；自选组不限数量，非 1.2 倍产物和动物都可以选。已加入的产物不再出现在下方「备选产物一览」。</p>
         <div class="grphd"><span class="grp">本周 1.2 倍产物</span><button type="button" class="gset" id="btnSetCmp12">设置</button></div>
         <div id="cmp12"></div>
-        <div class="grphd" style="margin-top:12px"><span class="grp">非1.2倍产物对比</span><button type="button" class="gset" id="btnSetCmpMan">设置</button></div>
+        <div class="grphd" style="margin-top:12px"><span class="grp">自选产物</span><button type="button" class="gset" id="btnSetCmpMan">设置</button></div>
         <div id="cmpMan"></div>
       </div>
     </div>
@@ -106,10 +106,14 @@
 
     <div class="card res">
       <div class="chd fold" data-fold="outProd">
-        <span class="dot pd"></span><b>产物利润排行</b><button type="button" class="iinfo" data-tipid="tip-rank" aria-label="说明">ⓘ</button><span class="arrow">▾</span>
+        <span class="dot pd"></span><b>备选产物一览</b><button type="button" class="iinfo" data-tipid="tip-rank" aria-label="说明">ⓘ</button><span class="arrow">▾</span>
       </div>
       <div class="cbd" id="outProd">
-        <p class="tip" id="tip-rank" hidden>排行按「单份利润 × 可达总量」从高到低：可达总量取可养容量与可收获份数中的较小者。</p>
+        <p class="tip" id="tip-rank" hidden>与上方的「已选产物对比」互补：已加入对比的产物（含本周 1.2 倍）不再在这里重复显示。默认按 植物 → 鱼 → 陨星 分类排列，可切换为按利润（单份利润 × 可达总量）从高到低；也可按类排除 植物 / 鱼 / 陨星，或一键排除稀有作物（六个随机变异的双色品种，可遇不可求）。</p>
+        <div class="prodctl">
+          <button type="button" class="fsel sm" id="prodSortSel" aria-label="排序方式">默认分类</button>
+          <button type="button" class="tbtn sm" id="ph-plant" aria-pressed="false">排除植物</button><button type="button" class="tbtn sm" id="ph-fish" aria-pressed="false">排除鱼</button><button type="button" class="tbtn sm" id="ph-star" aria-pressed="false">排除陨星</button><button type="button" class="tbtn sm" id="ph-rare" aria-pressed="false">排除稀有作物</button>
+        </div>
         <div id="outProdList"></div>
       </div>
     </div>
@@ -404,8 +408,8 @@
   </div>
 </div>
 
-<script src="data.js?v=1.210.6.59"></script>
-<script src="core.js?v=1.210.6.59"></script>
-<script src="app.js?v=1.210.6.59"></script>
+<script src="data.js?v=1.210.7.64"></script>
+<script src="core.js?v=1.210.7.64"></script>
+<script src="app.js?v=1.210.7.64"></script>
 </body>
 </html>
